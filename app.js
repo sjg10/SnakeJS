@@ -1,17 +1,23 @@
+/**
+ * @file app.js
+ * The main server app.
+ */ 
+
 var
-    port            = 80
+    port            = 4004,
     express         = require('express'),
     http            = require('http'),
     app             = express(),
     server          = http.createServer(app);
 
 
-server.listen(gameport)
-console.log('Snake listening on ' + gameport );
+/* Initialise server */
+server.listen(port);
+console.log('Snake listening on ' + port );
 
 /* Forward / to index.html */
 app.get( '/', function( req, res ){
-    console.log('trying to load %s', __dirname + '/index.html');
+    console.log('fetching %s', __dirname + '/index.html');
     res.sendfile( '/index.html' , { root:__dirname });
 });
 
@@ -19,6 +25,7 @@ app.get( '/', function( req, res ){
 app.get( '/*' , function( req, res, next ) {
     var file = req.params[0];
         //Send the requesting client the file.
+    console.log('fetching %s', __dirname + '/' + file);
     res.sendfile( __dirname + '/' + file );
 });
 
