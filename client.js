@@ -56,6 +56,36 @@ Direction.isDirectionOpposite = function(dir1, dir2) {
     return (Math.abs(dir1 - dir2) == 2);
 }
 
+/** Create touchscreen namespace.
+ * This will allow access to the hammer library
+ * for reading swipes
+ */
+var touchscreen = touchscreen       || {};
+
+/** Give it a setup function to look for swipes
+ * @return touchscreen 
+ */
+touchscreen.setup = function() {
+        var mc = new Hammer(document.getElementById('viewport'));
+        mc.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
+        mc.on("swipeleft", function (ev) {touchscreen.direction =          Direction.LEFT;});
+        mc.on("swipeup", function (ev) {touchscreen.direction = Direction. UP;});
+        mc.on("swipedown", function (ev) {touchscreen.direction =          Direction.DOWN;});
+        mc.on("swiperight", function (ev) {touchscreen.direction =         Direction.RIGHT;});
+        return touchscreen;
+}
+
+/**
+ * Get the touchscreen last direction and clear
+ * @return {Direction} last direction, undefined if none found
+ */ 
+touchscreen.getPressedDirection = function() {
+        var retval = touchscreen.direction;
+        touchscreen.direction = undefined;
+        return retval;
+}
+
+
 /** A snake player class.
  * @param {Number} initial x grid coordinate of head
  * @param {Number} initial y grid coordinate of head
@@ -77,7 +107,32 @@ var Snake = function(initialX, initialY, initialDirection, initialSpeed, color, 
     this.yMax = (this.canvasCtx.canvas.height / GRID_SIZE) - 1; /* in grid squares */
     this.direction = initialDirection;
     this.color = color;
+    /* TODO: swap these inputs with the server for the two player game */
+    this.keyboard = new THREEx.KeyboardState();
+    this.touchscreen = touchscreen.setup();
 }
+
+/**
+ * A snake local method to update the snakes direction,
+ * based on the last sensed keyboard or touchscreen interaction
+ */
+Snake.prototype.updateDirection = function() {
+    /* If a touchscreen was attatched and swiped we get that (else undefined) */
+    var direction = this.touchscreen.getPressedDirection();
+    if( this.keyboard.pressed('A') ||
+        this.keyboard.pressed('left')) {direction = Direction.LEFT;}
+    if( this.keyboard.pressed('D') ||
+        this.keyboard.pressed('right')) {direction = Direction.RIGHT;}
+    if( this.keyboard.pressed('W') ||
+        this.keyboard.pressed('up')) {direction = Direction.UP;}
+    if( this.keyboard.pressed('S') ||
+        this.keyboard.pressed('down')) {direction = Direction.DOWN;}
+    if (typeof(direction) != "undefined" &&
+        !Direction.isDirectionOpposite(direction, this.direction)) {
+    this.direction = direction
+    }
+}
+
 
 /**
  * A snake local method to update its position, assuming it carries on
@@ -162,7 +217,7 @@ function animLoop(element) {
             element.clearRect(0, 0, element.canvas.width, element.canvas.height);
             localSnake.draw();
             localSnake.updatePosition(dt);
-            /* TODO: take input */
+            localSnake.updateDirection();
             /* Check for game end conditions */
             running = !localSnake.checkOffscreen();
             running = running && !localSnake.checkSelfCollision();
