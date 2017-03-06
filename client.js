@@ -32,6 +32,8 @@
 
     /* Size of a grid square in pix */
 var GRID_SIZE = 10,
+    /* Colour of an apple in hex RGBa */
+    APPLE_COLOR = "#00FF00",
     /* Initial length of a snake in grid elements */
     INITIAL_SNAKE_LENGTH = 3,
     /* Size of a grid border (how much of a grid square not to paintin pix */
@@ -51,6 +53,7 @@ var Direction = {
  * Static macro to check if two directions are opposite
  * @param {Direction} direction 1
  * @param {Direction} direction 2
+ * @return {BOolean} true iff opposite
  */
 Direction.isDirectionOpposite = function(dir1, dir2) {
     return (Math.abs(dir1 - dir2) == 2);
@@ -106,10 +109,20 @@ var Snake = function(initialX, initialY, initialDirection, initialSpeed, color, 
     this.xMax = (this.canvasCtx.canvas.width / GRID_SIZE) - 1; /* in grid squares */
     this.yMax = (this.canvasCtx.canvas.height / GRID_SIZE) - 1; /* in grid squares */
     this.direction = initialDirection;
+    this.nextDirection = initialDirection;
     this.color = color;
+    this.scored = false;
     /* TODO: swap these inputs with the server for the two player game */
     this.keyboard = new THREEx.KeyboardState();
     this.touchscreen = touchscreen.setup();
+}
+
+/**
+ * A snake local method to get the snake's score.
+ * @return {Number} the snake's score
+ */
+Snake.prototype.getScore = function() {
+    return this.loc.length - INITIAL_SNAKE_LENGTH;
 }
 
 /**
@@ -129,7 +142,7 @@ Snake.prototype.updateDirection = function() {
         this.keyboard.pressed('down')) {direction = Direction.DOWN;}
     if (typeof(direction) != "undefined" &&
         !Direction.isDirectionOpposite(direction, this.direction)) {
-    this.direction = direction
+    this.nextDirection = direction;
     }
 }
 
@@ -138,18 +151,31 @@ Snake.prototype.updateDirection = function() {
  * A snake local method to update its position, assuming it carries on
  * in its current direction
  * @param {Number} The delta in time since the last update (in ms)
+ * @return {x,y} the last location just behind the snake, undefined if the snake didn't move.
  */
 Snake.prototype.updatePosition = function(dt) {
+    var lastPosition = undefined;
     this.fracIncr += this.speed * dt;
     /* Ensure integer jumps so save frac part and only move by integer part */
     localIncr = Math.trunc(this.fracIncr);
     this.fracIncr -= localIncr;
-    switch(this.direction) {
-        case Direction.RIGHT: for(i = 0; i < localIncr; i++) {this.loc.unshift({x : this.loc[0].x + 1, y: this.loc[0].y});this.loc.pop();}; break;
-        case Direction.DOWN: for(i = 0; i < localIncr; i++) {this.loc.unshift({x : this.loc[0].x, y: this.loc[0].y + 1});this.loc.pop();}; break;
-        case Direction.LEFT: for(i = 0; i < localIncr; i++)  {this.loc.unshift({x : this.loc[0].x - 1, y: this.loc[0].y});this.loc.pop();}; break;
-        case Direction.UP: for(i = 0; i < localIncr; i++) {this.loc.unshift({x : this.loc[0].x, y: this.loc[0].y - 1});this.loc.pop();}; break;
-        default: console.error(); break;
+    if(localIncr) {
+        this.direction = this.nextDirection;
+        switch(this.direction) {
+            case Direction.RIGHT: for(i = 0; i < localIncr; i++) {this.loc.unshift({x : this.loc[0].x + 1, y: this.loc[0].y});
+                lastPosition = this.loc.pop();}; break;
+            case Direction.DOWN: for(i = 0; i < localIncr; i++) {this.loc.unshift({x : this.loc[0].x, y: this.loc[0].y + 1});
+                lastPosition = this.loc.pop();}; break;
+            case Direction.LEFT: for(i = 0; i < localIncr; i++)  {this.loc.unshift({x : this.loc[0].x - 1, y: this.loc[0].y});
+                lastPosition = this.loc.pop();}; break;
+            case Direction.UP: for(i = 0; i < localIncr; i++) {this.loc.unshift({x : this.loc[0].x, y: this.loc[0].y - 1});
+                lastPosition = this.loc.pop();}; break;
+            default: console.error(); break;
+        }
+        if (this.scored) {
+            this.loc.push(lastPosition);
+            this.scored = false;
+        }
     }
 }
 
@@ -186,9 +212,16 @@ Snake.prototype.checkSelfCollision = function() {
 }
 
 /**
+ * A snake local method to increment the score of a snake and make it grow by 1
+ */
+Snake.prototype.score = function() {
+    this.scored = true;
+}
+
+/**
  * A snake local method to draw it onto its canvas
  */
-Snake.prototype.draw = function(dt) {
+Snake.prototype.draw = function() {
     for(i = 0; i < this.loc.length; i++) {
     this.canvasCtx.fillStyle = this.color;
     this.canvasCtx.fillRect((this.loc[i].x * GRID_SIZE) + BORDER_SIZE,
@@ -199,15 +232,110 @@ Snake.prototype.draw = function(dt) {
 };
 
 /**
+ * The apple class for the prize to be sought
+ * @param {Number} x the x location of the apple in grid squares
+ * @param {Number} y the y location of the apple in grid squares
+ * @param {String} a hex colour string for the apple
+ * @param {canvasCtx} a canvas context for the apple to be drawn on
+ */
+var Apple = function(x, y, color, canvasCtx) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.canvasCtx = canvasCtx;
+}
+
+/**
+ * AN apple static to generate a new apple on a random square where no snakes lie
+ * @param {Array(Snake)} the snakes to not draw an apple on
+ * @param {String} a hex colour string for the apple
+ * @param {String} a hex colour string for the apple
+ * @param {canvasCtx} a canvas context for the apple to be drawn on
+ */
+Apple.randomApple = function(snakes, color, canvasCtx) {
+    xMax = (canvasCtx.canvas.width / GRID_SIZE) - 1; /* in grid squares */
+    yMax = (canvasCtx.canvas.height / GRID_SIZE) - 1; /* in grid squares */
+    do {
+        x = Math.floor(Math.random() * xMax);
+        y = Math.floor(Math.random() * yMax);
+        overlap = false;
+        outerloop:
+        for(i = 0; i < snakes.length; i++) {
+            for(j = 0; j < snakes[i].loc.length; j++) {
+                if(x == snakes[i].loc[j].x && y == snakes[i].loc[j].y)
+                    overlap = true;
+                    break outerloop;
+            }
+        }
+    } while(overlap);
+    return new Apple(x, y, color,canvasCtx);
+}
+
+/**
+ * An apple local method to draw it onto its canvas
+ */
+Apple.prototype.draw = function() {
+    this.canvasCtx.fillStyle = this.color;
+    this.canvasCtx.fillRect((this.x * GRID_SIZE) + BORDER_SIZE,
+            (this.y * GRID_SIZE) + BORDER_SIZE,
+            GRID_SIZE - (2 * BORDER_SIZE),
+            GRID_SIZE - (2 * BORDER_SIZE));
+}
+
+/**
+ * An apple local method to check if a snake is over it.
+ * @param {Snake} a snake to check
+ * @return {Boolean} true if the snake is on top of the apple, false otherwise
+ */
+Apple.prototype.eaten = function(snake) {
+    for(i = 0; i < snake.loc.length; i++) {
+        if(this.x == snake.loc[i].x &&
+                this.y == snake.loc[i].y)
+            return true;
+    }
+    return false;
+}
+
+/** Print a gameover box on the canvas with the score
+ * @param {CanvasCtx} the canvas context to draw on
+ * @param {Number} The score
+ */
+function printGameOver(element, score) {
+    element.font="bold 20px Courier New";
+    element.fillStyle = "#212121";
+    element.textAlign="center";
+    firstStr = "GAME OVER";
+    secondStr = "Score: " + score;
+    console.log(element.measureText(firstStr),  element.measureText(secondStr));
+    boxWidth = Math.max(element.measureText(firstStr).width,  element.measureText(secondStr).width);
+    /* TODO: make more geometry independant */
+    element.fillRect((element.canvas.width / 2) - ((boxWidth / 2) + 10),
+            ((element.canvas.height * 6) / 11) - 25,
+            boxWidth + 20,
+            60);
+    element.clearRect((element.canvas.width / 2) - ((boxWidth / 2) + 8),
+            ((element.canvas.height * 6 / 11)) - 23,
+            boxWidth + 16,
+            54);
+    element.fillText(firstStr,
+            element.canvas.width / 2,
+            (element.canvas.height * 6) / 11);
+    element.fillText(secondStr,
+            element.canvas.width / 2,
+            (element.canvas.height * 6) / 11 + 20);
+}
+
+/**
  * The main animation loop. 
- * @param {Canvas} canvas element from DOM to draw on.
+ * @param {Canvas} canvas context element from DOM to draw on.
  */ 
 function animLoop(element) {
     var running = true;
     var lastFrame = performance.now();
     console.log("Create snake");
     /* Create a snake */
-    localSnake = new Snake(2, 0, Direction.RIGHT, 0.01, "#FF0000", ctx);
+    localSnake = new Snake(2, 0, Direction.RIGHT, 0.01, "#FF0000", element);
+    apple = Apple.randomApple([localSnake], APPLE_COLOR, element);
     function loop( now ) {
         if ( running !== false ) {
             /* schedule to run again when the screen can refresh */
@@ -216,24 +344,30 @@ function animLoop(element) {
             /* Clear canvas */
             element.clearRect(0, 0, element.canvas.width, element.canvas.height);
             localSnake.draw();
-            localSnake.updatePosition(dt);
+            apple.draw();
+            lastLoc = localSnake.updatePosition(dt);
             localSnake.updateDirection();
             /* Check for game end conditions */
             running = !localSnake.checkOffscreen();
             running = running && !localSnake.checkSelfCollision();
-            /* TODO: add point markers and check for them */
+            /* Check if the apple is now eaten */
+            if(apple.eaten(localSnake)) {
+                localSnake.score(lastLoc);
+                apple = Apple.randomApple([localSnake], APPLE_COLOR, element);
+            }
             lastFrame = now;
         }
         else {
-            alert("Game over");
+            printGameOver(element, localSnake.getScore());
         }
     }
     loop( lastFrame );
 }
 
 window.onload = function(e){
-		viewport = document.getElementById('viewport');
-		ctx = viewport.getContext('2d');
+        viewport = document.getElementById('viewport');
+        ctx = viewport.getContext('2d');
         viewport.focus();
         animLoop(ctx);
 };
+
