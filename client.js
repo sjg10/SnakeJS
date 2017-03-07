@@ -223,11 +223,15 @@ Snake.prototype.score = function() {
  */
 Snake.prototype.draw = function() {
     for(i = 0; i < this.loc.length; i++) {
+    this.canvasCtx.beginPath();
+    this.canvasCtx.arc(
+        (this.loc[i].x * GRID_SIZE) + (GRID_SIZE / 2),
+        (this.loc[i].y * GRID_SIZE) + (GRID_SIZE / 2),
+        (GRID_SIZE - (2 * BORDER_SIZE)) / 2,
+        0, 2 * Math.PI, false);
     this.canvasCtx.fillStyle = this.color;
-    this.canvasCtx.fillRect((this.loc[i].x * GRID_SIZE) + BORDER_SIZE,
-            (this.loc[i].y * GRID_SIZE) + BORDER_SIZE,
-            GRID_SIZE - (2 * BORDER_SIZE),
-            GRID_SIZE - (2 * BORDER_SIZE));
+    this.canvasCtx.fill();
+    this.canvasCtx.closePath();
     }
 };
 
@@ -275,11 +279,15 @@ Apple.randomApple = function(snakes, color, canvasCtx) {
  * An apple local method to draw it onto its canvas
  */
 Apple.prototype.draw = function() {
+    this.canvasCtx.beginPath();
+    this.canvasCtx.arc(
+        (this.x * GRID_SIZE) + (GRID_SIZE / 2),
+        (this.y * GRID_SIZE) + (GRID_SIZE / 2),
+        (GRID_SIZE - (2 * BORDER_SIZE)) / 2,
+        0, 2 * Math.PI, false);
     this.canvasCtx.fillStyle = this.color;
-    this.canvasCtx.fillRect((this.x * GRID_SIZE) + BORDER_SIZE,
-            (this.y * GRID_SIZE) + BORDER_SIZE,
-            GRID_SIZE - (2 * BORDER_SIZE),
-            GRID_SIZE - (2 * BORDER_SIZE));
+    this.canvasCtx.fill();
+    this.canvasCtx.closePath();
 }
 
 /**
