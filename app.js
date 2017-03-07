@@ -8,6 +8,7 @@ var
     express         = require('express'),
     http            = require('http'),
     app             = express(),
+    fs              = require('fs'),
     server          = http.createServer(app);
 
 
@@ -23,9 +24,15 @@ app.get( '/', function( req, res ){
 
 /* Serve any other request unredirected */
 app.get( '/*' , function( req, res, next ) {
-    var file = req.params[0];
-        //Send the requesting client the file.
-    console.log('fetching %s', __dirname + '/' + file);
-    res.sendfile( __dirname + '/' + file );
+    var file = __dirname + '/' + req.params[0];
+    //Send the requesting client the file.
+    if (fs.existsSync(file)) {
+        console.log('fetching %s',file);
+        res.sendfile(file );
+    }
+    else {
+        res.status(404)        // HTTP status 404: NotFound
+        .send('<font size=30><b>ERROR 404:</b><br>File not found</fontsize>');
+    }
 });
 
