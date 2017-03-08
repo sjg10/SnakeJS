@@ -4,7 +4,7 @@
  */ 
 
 var
-    port            = 4004,
+    port            = process.env.PORT || 4004,
     express         = require('express'),
     http            = require('http'),
     app             = express(),
