@@ -5,6 +5,7 @@
 
 var
     port            = process.env.PORT || 4004,
+    io              = require('socket.io'),
     express         = require('express'),
     http            = require('http'),
     app             = express(),
@@ -36,3 +37,22 @@ app.get( '/*' , function( req, res, next ) {
     }
 });
 
+
+/* Initialise the socketio server */
+var sio = io.listen(server);
+var cons = 0;
+clients = [];
+sio.sockets.on('connection', function (client) {
+    cons++;
+    clients.push(client);
+    for(i = 0; i < clients.length; i++) {
+        clients[i].emit('update-cons', cons);
+    }
+    client.on('disconnect', function() {
+        cons--;
+        clients.splice(clients.indexOf(client), 1);
+        for(i = 0; i < clients.length; i++) {
+            clients[i].emit('update-cons', cons);
+        }
+    });
+});

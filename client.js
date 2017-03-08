@@ -372,7 +372,13 @@ function animLoop(element) {
     loop( lastFrame );
 }
 
+function connectToServer() {
+    socket = io.connect();
+    socket.on('update-cons', function(cons) {alert('Connections: ' + cons);});
+}
+
 window.onload = function(e){
+        connectToServer();
         viewport = document.getElementById('viewport');
         ctx = viewport.getContext('2d');
         viewport.focus();
