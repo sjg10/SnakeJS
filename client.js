@@ -30,6 +30,17 @@
         };
 }());
 
+/**
+ * Number of online Users
+ */
+var onlineUsers = 0;
+
+/**
+ * Check if ingame
+ */
+var inGame = false;
+
+
 /** Create touchscreen namespace.
  * This will allow access to the hammer library
  * for reading swipes
@@ -77,34 +88,10 @@ function getInputDirection(touchscreen, keyboard) {
     return direction;
 }
 
-/** Print a gameover box on the canvas with the score
+/** Print a gameover sequencebox on the canvas with the score
  * @param {CanvasCtx} the canvas context to draw on
  * @param {Number} The score
  */
-function printGameOver(element, score) {
-    element.font="bold 20px Courier New";
-    element.fillStyle = "#212121";
-    element.textAlign="center";
-    firstStr = "GAME OVER";
-    secondStr = "Score: " + score;
-    console.log(element.measureText(firstStr),  element.measureText(secondStr));
-    boxWidth = Math.max(element.measureText(firstStr).width,  element.measureText(secondStr).width);
-    /* TODO: make more geometry independant */
-    element.fillRect((element.canvas.width / 2) - ((boxWidth / 2) + 10),
-            ((element.canvas.height * 6) / 11) - 25,
-            boxWidth + 20,
-            60);
-    element.clearRect((element.canvas.width / 2) - ((boxWidth / 2) + 8),
-            ((element.canvas.height * 6 / 11)) - 23,
-            boxWidth + 16,
-            54);
-    element.fillText(firstStr,
-            element.canvas.width / 2,
-            (element.canvas.height * 6) / 11);
-    element.fillText(secondStr,
-            element.canvas.width / 2,
-            (element.canvas.height * 6) / 11 + 20);
-}
 
 /**
  * The main animation loop.
@@ -146,21 +133,70 @@ function animLoop(element) {
             lastFrame = now;
         }
         else {
-            printGameOver(element, localSnake.getScore());
+            //printGameOver(element, localSnake.getScore());
+            endGame(localSnake.getScore());
         }
     }
     loop( lastFrame );
 }
 
-function connectToServer() {
-    socket = io.connect();
-    socket.on('update-cons', function(cons) {console.log('Connections: ' + cons);});
+/**
+ * Updates the number of connections in the view forms.
+ */
+function updateOnlineUserView() {
+  document.getElementById("numberOfConnections").innerHTML = "Online Users: " + onlineUsers;
+  document.getElementById("reNumberOfConnections").innerHTML = "Online Users: " + onlineUsers;
 }
 
+/**
+ * Connects to the socket io server and sets the number of online users to be updated
+ * on state change.
+ */
+function connectToServer() {
+    socket = io.connect();
+    socket.on('update-cons', function(cons) {
+      onlineUsers = cons;
+      if (!inGame) {
+        updateOnlineUserView();
+      }});
+}
+
+/**
+ * Terminate a game and bringup gameover screen.
+ */
+function endGame(score) {
+  document.getElementById("finalScore").innerHTML = "Score = " + score;
+  document.getElementById("postgame").style.display = '';
+  document.getElementById("usernameInputRestart").focus();
+  updateOnlineUserView();
+  inGame = false;
+}
+
+/**
+ * Begin a game
+ * @param {form} form form that started the game.
+ * @param {Boolean} restart if first game, true otherwise
+ */
+function startGame(form, restart){
+  if (restart) {
+    username = document.getElementById("usernameInputRestart").value;
+    document.getElementById("postgame").style.display = 'none';
+  }
+  else {
+    username = document.getElementById("usernameInput").value;
+    document.getElementById("usernameInputRestart").value = username;
+    document.getElementById("pregame").style.display = 'none';
+  }
+  inGame = true;
+  viewport = document.getElementById('viewport');
+  ctx = viewport.getContext('2d');
+  viewport.focus();
+  animLoop(ctx);
+}
+
+/**
+ * Connect server on start
+ */
 window.onload = function(e){
-        connectToServer();
-        viewport = document.getElementById('viewport');
-        ctx = viewport.getContext('2d');
-        viewport.focus();
-        animLoop(ctx);
+  conns = connectToServer();
 };

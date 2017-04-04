@@ -2,19 +2,46 @@
 <html>
 	<head>
 		<title>Snake</title>
-        <!-- Load style sheet -->
+				<!-- Load style sheet -->
 		<link href="index.css" media="screen" rel="stylesheet" type="text/css">
-        <!-- Load the input libraries -->
-        <script type="text/javascript" src="lib/keyboard.js"></script>
-        <script type="text/javascript" src="lib/hammer.js"></script>
-        <!-- Game code -->
-        <script src="/socket.io/socket.io.js"></script>
+				<!-- Load the input libraries -->
+				<script type="text/javascript" src="lib/keyboard.js"></script>
+				<script type="text/javascript" src="lib/hammer.js"></script>
+				<!-- Game code -->
+				<script src="/socket.io/socket.io.js"></script>
 				<script type="text/javascript" src="client.js"></script>
-				<script type="text/javascript" src="game.js"></script>		
+				<script type="text/javascript" src="game.js"></script>
 	</head>
 	<body>
 	<!-- Game Canvas -->
-		<canvas id="viewport">
-		</canvas>
+		<div id="pregame" class="modalDialog">
+		 <div>
+				 <h2>Snake</h2>
+				 <p id="numberOfConnections" align="center"></p>
+				 <p> Input a username and press "Join Game" to wait for an opponent and play.</p>
+				 <div style="text-align:center">
+						 <form action="javascript:startGame(this, false)">
+							 Username: <input type="text" id="usernameInput" autofocus/><br><br>
+							 <input type="submit" value= "Play" style="margin:0px auto; display:block;"/><br>
+						 </form>
+				 </div>
+		 </div>
+  </div>
+	<div id="ingame"><canvas id="viewport"></canvas></div>
+	<div id="postgame" class="modalDialog" style="display: none">
+	 <div>
+			 <h2>Snake</h2>
+			 <p> Game Over!</p>
+			 <p id="finalScore"></p>
+			 <p id="reNumberOfConnections" align="center"></p>
+			 <div style="text-align:center">
+				 <!-- TODO: this form is never being created (form tags dissapear) why? problem with two forms? tried distinct ID's, no help! -->
+					 <form action="javascript:startGame(this, true)">
+						 Username: <input type="text" id="usernameInputRestart"/><br><br>
+						 <input type="submit" value= "Play Again" style="margin:0px auto; display:block;"/><br>
+					 </form>
+			 </div>
+	 </div>
+	 </div>
 	</body>
 </html>
