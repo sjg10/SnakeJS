@@ -100,7 +100,6 @@ function getInputDirection(touchscreen, keyboard) {
 function animLoop(element) {
     var running = true;
     var lastFrame = performance.now();
-    console.log("Create snake");
     /* Setup input devices */
     this.touchscreen = touchscreen.setup();
     this.keyboard = new THREEx.KeyboardState();

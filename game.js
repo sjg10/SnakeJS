@@ -68,7 +68,7 @@ Snake.prototype.getScore = function() {
  * @param {Direction} the new direction
  */
 Snake.prototype.updateDirection = function(direction) {
-  if (!Direction.isDirectionOpposite(direction, this.direction)) {
+  if (typeof this.nextDirection == 'undefined' && !Direction.isDirectionOpposite(direction, this.direction)) {
     this.nextDirection = direction;
   }
 }
@@ -87,7 +87,10 @@ Snake.prototype.updatePosition = function(dt) {
     localIncr = Math.trunc(this.fracIncr);
     this.fracIncr -= localIncr;
     if(localIncr) {
-        this.direction = this.nextDirection;
+        if(typeof this.nextDirection != 'undefined') {
+          this.direction = this.nextDirection;
+          this.nextDirection = undefined;
+        }
         switch(this.direction) {
             case Direction.RIGHT: for(i = 0; i < localIncr; i++) {this.loc.unshift({x : this.loc[0].x + 1, y: this.loc[0].y});
                 lastPosition = this.loc.pop();}; break;
